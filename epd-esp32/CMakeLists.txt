@@ -3,6 +3,8 @@ idf_component_register(
         "src/epd_esp32_transport.cxx"
         "./../epd-core/epd_panel.cxx"
         "./../epd-core/epd_transport.cxx"
+        "./../epd-core/panels/epd_panel_GDEY037T03.cxx"
+        "./../epd-core/controllers/epd_controller_uc8253.cxx"
     INCLUDE_DIRS
         "src"
         "./../epd-core"

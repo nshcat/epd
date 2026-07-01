@@ -7,7 +7,8 @@ namespace epd
     namespace panels
     {
         GDEY037T03::GDEY037T03(transport* transport)
-            : epd::panel(width, height, transport)
+            :   epd::panel(GDEY037T03::WIDTH, GDEY037T03::HEIGHT, transport),
+                m_controller{transport}
         {
 
         }

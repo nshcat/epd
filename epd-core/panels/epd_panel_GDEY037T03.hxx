@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../epd_panel.hxx"
 #include <cstdint>
 #include <memory>
+
+#include "../epd_panel.hxx"
+#include "../controllers/epd_controller_uc8253.hxx"
 
 namespace epd
 {
@@ -39,6 +41,7 @@ namespace epd
 
             protected:
                 std::size_t m_framebufferSize{ };
+                controllers::UC8253 m_controller;
                 std::unique_ptr<std::uint8_t> m_framebufferA{ };
                 std::unique_ptr<std::uint8_t> m_framebufferB{ };
         };
