@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "src/epd_esp32_transport.cxx"
+        "./../epd-core/epd_panel.cxx"
+        "./../epd-core/epd_transport.cxx"
+    INCLUDE_DIRS
+        "src"
+        "./../epd-core"
+    REQUIRES
+        "driver"
+)
