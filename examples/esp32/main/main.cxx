@@ -2,6 +2,7 @@
 #include <esp_log.h>
 #include "epd_color.hxx"
 #include "epd_esp32_transport.hxx"
+#include "epd_graphics.hxx"
 #include "epd_types.hxx"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
@@ -58,30 +59,27 @@ void app_main(void)
         ESP_LOGE(TAG, "Failed to intialize display");
     }
 
-    for(unsigned iy = 0; iy < panel.height(); ++iy)
-    {
-        status = panel.set_pixel(epd::position{0, iy}, epd::color::black);
-        ESP_ERROR_CHECK(status);
+    epd::graphics graphics{&panel, epd::rotation::by_90deg};
+    ESP_LOGI(TAG, "Graphics dimensions: %dx%d", graphics.width(), graphics.height());
+
     
-        status = panel.set_pixel(epd::position{panel.width() - 1, iy}, epd::color::black);
-        ESP_ERROR_CHECK(status);
-    }
-
-    for(unsigned ix = 0; ix < panel.width(); ++ix)
-    {
-        status = panel.set_pixel(epd::position{ix, 0}, epd::color::black);
-        ESP_ERROR_CHECK(status);
+    graphics.clear(epd::color::white);
     
-        status = panel.set_pixel(epd::position{ix, panel.height() - 1}, epd::color::black);
-        ESP_ERROR_CHECK(status);
+    graphics.draw_hline(
+        epd::position{0, (std::int32_t)graphics.height()/2}, 
+        graphics.width(),
+        epd::color::black
+    );
+
+    graphics.draw_line(epd::position{0, 0}, epd::position{25, 25}, epd::color::black);
+
+    graphics.draw_rect(epd::position{25, 55}, 75, 45, epd::color::black);
+
+    status = graphics.display();
+    if(status != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to draw image");
     }
-
-    status = panel.refresh();
-    ESP_ERROR_CHECK(status);
-
-    status = panel.sleep();
-    ESP_ERROR_CHECK(status);
-
 
     ESP_LOGI(TAG, "Start idling");
     while(true)

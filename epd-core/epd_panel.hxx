@@ -28,6 +28,7 @@ namespace epd
     public: // Panel properties
         std::uint32_t width() const;
         std::uint32_t height() const;
+        epd::transport* transport() const;
 
     public: // Panel management
         virtual error_t initialize() = 0;
@@ -41,6 +42,6 @@ namespace epd
     protected:
         std::uint32_t m_width;
         std::uint32_t m_height;
-        transport* m_transport;
+        epd::transport* m_transport;
     };
 }

@@ -32,6 +32,7 @@ namespace epd
         bool is_initialized() const;
 
         virtual error_t delay(std::uint32_t milliseconds) = 0;
+        virtual error_t yield() = 0;
 
         virtual bool has_hw_reset() const = 0;
         virtual bool has_busy_pin() const = 0;

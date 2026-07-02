@@ -106,6 +106,13 @@ namespace epd
             return ESP_OK;
         }
 
+        error_t transport::yield()
+        {
+            vTaskDelay(1);
+
+            return ESP_OK;
+        }
+
         bool transport::has_hw_reset() const
         {
             return this->m_pins.has_reset_pin();

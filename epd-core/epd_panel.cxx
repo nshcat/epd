@@ -1,9 +1,10 @@
 #include <cstdint>
 #include <epd_panel.hxx>
+#include <epd_transport.hxx>
 
 namespace epd
 {
-    panel::panel(std::uint32_t width, std::uint32_t height, transport* transport)
+    panel::panel(std::uint32_t width, std::uint32_t height, epd::transport* transport)
         : m_width{width}, m_height{height}, m_transport{transport}
     {
 
@@ -17,5 +18,10 @@ namespace epd
     std::uint32_t panel::height() const
     {
         return this->m_height;
+    }
+
+    epd::transport* panel::transport() const
+    {
+        return this->m_transport;
     }
 }

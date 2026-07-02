@@ -4,6 +4,7 @@ idf_component_register(
         "./../epd-core/epd_types.cxx"
         "./../epd-core/epd_panel.cxx"
         "./../epd-core/epd_transport.cxx"
+        "./../epd-core/epd_graphics.cxx"
         "./../epd-core/panels/epd_panel_GDEY037T03.cxx"
         "./../epd-core/controllers/epd_controller_UC8253.cxx"
     INCLUDE_DIRS

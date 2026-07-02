@@ -2,7 +2,7 @@
 
 namespace epd
 {
-    position::position(std::uint32_t x, std::uint32_t y)
+    position::position(std::int32_t x, std::int32_t y)
         : x{x}, y{y}
     {
 

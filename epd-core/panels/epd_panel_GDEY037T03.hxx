@@ -23,7 +23,7 @@ namespace epd
                 using framebuffer_ptr = std::unique_ptr<std::uint8_t, std::function<void(std::uint8_t*)>>;
 
             public:
-                GDEY037T03(transport* transport);
+                GDEY037T03(epd::transport* transport);
 
                 virtual ~GDEY037T03() = default;
 
