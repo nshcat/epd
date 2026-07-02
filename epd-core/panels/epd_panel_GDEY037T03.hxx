@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <functional>
@@ -39,14 +40,17 @@ namespace epd
                 
             public: // Panel graphics operations
                 virtual error_t fill(color color) override;
+                virtual error_t set_pixel(position pos, color color) override;
 
             protected:
                 error_t setup_framebuffers();
+                error_t allocate_framebuffer(framebuffer_ptr* target, std::size_t framebufferSize);
 
             protected:
                 std::size_t m_framebufferSize{ };
                 controllers::UC8253 m_controller;
-                framebuffer_ptr m_framebuffer{ };
+                framebuffer_ptr m_oldFramebuffer{ };
+                framebuffer_ptr m_newFramebuffer{ };
         };
     }
 }

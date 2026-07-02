@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstddef>
 
 #include "../epd_error.hxx"
 #include "../epd_panel.hxx"
@@ -33,7 +34,7 @@ namespace epd
             }
             // ==
 
-            // == Allocate framebuffer
+            // == Allocate framebuffers
             // Determine framebuffer size. Make sure that height is always a multiple of 
             auto stride = this->m_height;
             if((this->m_height % 8) != 0)
@@ -43,16 +44,11 @@ namespace epd
 
             this->m_framebufferSize = (this->m_width * (stride / 8));
 
-            std::uint8_t* framebuffer{nullptr};
-            result = this->m_transport->allocate_buffer(this->m_framebufferSize, &framebuffer);
+            result = this->allocate_framebuffer(&this->m_oldFramebuffer, this->m_framebufferSize);
             EPD_CHECK_ERR(result);
 
-            this->m_framebuffer = framebuffer_ptr(framebuffer,
-                [this](std::uint8_t* buffer) -> void
-                {
-                    this->m_transport->free_buffer(buffer);
-                }
-            );
+            result = this->allocate_framebuffer(&this->m_newFramebuffer, this->m_framebufferSize);
+            EPD_CHECK_ERR(result);
             // ==
 
             // == Power on and initialize display controller
@@ -61,7 +57,7 @@ namespace epd
             // ==
 
             // == Clear frame buffer with white
-            result = this->fill(color::black);
+            result = this->fill(color::white);
             EPD_CHECK_ERR(result);
             // ==
 
@@ -70,17 +66,23 @@ namespace epd
             EPD_CHECK_ERR(result);
             // ==
 
-            // == Power down, we are done here
-            // XXX This is already done by the call to ::refresh().
-            /*result = this->m_controller.power_down();
-            EPD_CHECK_ERR(result);*/
-            // ==
-
             return EPD_OK;
         }
 
         error_t GDEY037T03::sleep()
         {
+            error_t result = EPD_OK;
+
+            // We cant do deep sleep if we do not have a hardware reset line,
+            // since we wouldnt be able to wake the controller back up!
+            if(!this->m_transport->has_hw_reset())
+            {
+                return EPD_FAIL;
+            }
+
+            result = this->m_controller.deep_sleep();
+            EPD_CHECK_ERR(result);
+
             return EPD_OK;
         }
 
@@ -93,21 +95,29 @@ namespace epd
             EPD_CHECK_ERR(result);
             // ==
 
-            // == Then, send the frame buffer. We are using the OLD and NEW buffers here,
-            // and for a full refresh both should be the same (is that the case?)
+            // == Then, send the frame buffers.
+            // First, write the old data. It resides in framebuffer 1.
             result = this->m_controller.send_framebuffer(
                 controllers::UC8253_framebuffer::BUFFER_1,
                 this->m_framebufferSize,
-                this->m_framebuffer.get()
+                this->m_oldFramebuffer.get()
             );
             EPD_CHECK_ERR(result);
 
+            // Now, send the new data. It resides in framebuffer 2.
             result = this->m_controller.send_framebuffer(
                 controllers::UC8253_framebuffer::BUFFER_2,
                 this->m_framebufferSize,
-                this->m_framebuffer.get()
+                this->m_newFramebuffer.get()
             );
             EPD_CHECK_ERR(result);
+            // ==
+
+            // == The contents of the new framebuffer now have to become the
+            // old framebuffer content.
+            // XXX Do some kind of buffer switch using pointers so we dont have
+            //     to copy the buffer contents here?
+            std::copy(this->m_newFramebuffer.get(), this->m_newFramebuffer.get() + this->m_framebufferSize, this->m_oldFramebuffer.get());
             // ==
 
             // == Finally, perform a panel update from internal RAM.
@@ -129,7 +139,50 @@ namespace epd
             // Black/White buffer is inverted in monochrome mode
             const std::uint8_t fillValue = (color == color::black) ? 0x00 : 0xFF;
 
-            std::fill(this->m_framebuffer.get(), this->m_framebuffer.get() + this->m_framebufferSize, fillValue);
+            std::fill(this->m_newFramebuffer.get(), this->m_newFramebuffer.get() + this->m_framebufferSize, fillValue);
+
+            return EPD_OK;
+        }
+
+        error_t GDEY037T03::set_pixel(position pos, color color)
+        {
+            if(pos.x >= this->m_width || pos.y >= this->m_height)
+            {
+                return EPD_FAIL;
+            }
+
+            const auto index = ((pos.y * this->m_width) + pos.x) / 8;
+            const std::size_t offset = 7UL - (pos.x & 0x07);
+            const std::uint8_t colorBit = (color == color::black) ? 0b0 : 0b1;
+
+            auto* framebuffer = this->m_newFramebuffer.get();
+
+            framebuffer[index] = (framebuffer[index] & ~(0b1 << offset)) | (colorBit << offset);
+
+            return EPD_OK;
+        }
+
+        error_t GDEY037T03::allocate_framebuffer(framebuffer_ptr* target, std::size_t framebufferSize)
+        {
+            if(!target)
+            {
+                return EPD_FAIL;
+            }
+
+            error_t result{EPD_OK};
+
+            std::uint8_t* framebuffer{nullptr};
+            result = this->m_transport->allocate_buffer(framebufferSize, &framebuffer);
+            EPD_CHECK_ERR(result);
+
+            *target = framebuffer_ptr(framebuffer,
+                [this](std::uint8_t* buffer) -> void
+                {
+                    this->m_transport->free_buffer(buffer);
+                }
+            );
+
+            std::fill(framebuffer, framebuffer + framebufferSize, 0x00);
 
             return EPD_OK;
         }

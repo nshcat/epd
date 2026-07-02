@@ -165,9 +165,9 @@ namespace epd
             }
 
             // First, send the command. For that, we need to assert the DC line.
-            this->set_dc_pin(pin_state::low);
             this->set_cs_pin(pin_state::low);
-
+            this->set_dc_pin(pin_state::low);
+            
             spi_transaction_t commandTransaction{ };
             commandTransaction.length = 8;
             commandTransaction.tx_buffer = &command;

@@ -170,7 +170,7 @@ namespace epd
 
                 // Extra time to wait after sending a display refresh command, before
                 // checking the busy line
-                constexpr static std::size_t DRF_EXTRA_DELAY = 1000UL;
+                constexpr static std::size_t DRF_EXTRA_DELAY = 10UL;
 
                 // VCOM CDI setting for monochrome mode
                 constexpr static std::size_t VCOM_CDI_MONOCHROME = 0x97;

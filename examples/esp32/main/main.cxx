@@ -2,8 +2,10 @@
 #include <esp_log.h>
 #include "epd_color.hxx"
 #include "epd_esp32_transport.hxx"
+#include "epd_types.hxx"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
+#include "hal/i2s_hal.h"
 
 #include <epd_esp32.hxx>
 #include <panels/epd_panel_GDEY037T03.hxx>
@@ -12,7 +14,7 @@
 #define EPAPER_HOST SPI2_HOST
 #define EPAPER_PIN_NUM_MISO GPIO_NUM_19
 #define EPAPER_PIN_NUM_MOSI GPIO_NUM_23
-#define EPAPER_PIN_NUM_CLK  GPIO_NUM_22
+#define EPAPER_PIN_NUM_CLK  GPIO_NUM_18
 #define EPAPER_PIN_NUM_CS   GPIO_NUM_27
 #define EPAPER_PIN_NUM_DC  GPIO_NUM_14
 #define EPAPER_PIN_NUM_RST  GPIO_NUM_12
@@ -55,6 +57,30 @@ void app_main(void)
     {
         ESP_LOGE(TAG, "Failed to intialize display");
     }
+
+    for(unsigned iy = 0; iy < panel.height(); ++iy)
+    {
+        status = panel.set_pixel(epd::position{0, iy}, epd::color::black);
+        ESP_ERROR_CHECK(status);
+    
+        status = panel.set_pixel(epd::position{panel.width() - 1, iy}, epd::color::black);
+        ESP_ERROR_CHECK(status);
+    }
+
+    for(unsigned ix = 0; ix < panel.width(); ++ix)
+    {
+        status = panel.set_pixel(epd::position{ix, 0}, epd::color::black);
+        ESP_ERROR_CHECK(status);
+    
+        status = panel.set_pixel(epd::position{ix, panel.height() - 1}, epd::color::black);
+        ESP_ERROR_CHECK(status);
+    }
+
+    status = panel.refresh();
+    ESP_ERROR_CHECK(status);
+
+    status = panel.sleep();
+    ESP_ERROR_CHECK(status);
 
 
     ESP_LOGI(TAG, "Start idling");
