@@ -52,8 +52,8 @@ namespace epd
             virtual error_t set_cs_pin(pin_state state) override;
             virtual error_t set_reset_pin(pin_state state) override;
             virtual error_t send_command(std::uint8_t command, std::size_t dataLength, const std::uint8_t* data) override;
-            virtual error_t allocate_buffer(std::size_t bufferSize, void** buffer) override;
-            virtual error_t free_buffer(void* buffer) override;
+            virtual error_t allocate_buffer(std::size_t bufferSize, std::uint8_t** buffer) override;
+            virtual error_t free_buffer(std::uint8_t* buffer) override;
         
         protected:
             pinmap m_pins;

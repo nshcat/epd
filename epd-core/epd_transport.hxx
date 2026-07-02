@@ -43,8 +43,8 @@ namespace epd
         error_t send_command(std::uint8_t command);
         virtual error_t send_command(std::uint8_t command, std::size_t dataLength, const std::uint8_t* data) = 0;
 
-        virtual error_t allocate_buffer(std::size_t bufferSize, void** buffer) = 0;
-        virtual error_t free_buffer(void* buffer) = 0;
+        virtual error_t allocate_buffer(std::size_t bufferSize, std::uint8_t** buffer) = 0;
+        virtual error_t free_buffer(std::uint8_t* buffer) = 0;
 
     protected:
         void set_initialized(bool isInitialized);

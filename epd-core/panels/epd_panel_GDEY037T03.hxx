@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <functional>
 
 #include "../epd_panel.hxx"
 #include "../controllers/epd_controller_UC8253.hxx"
@@ -16,6 +17,9 @@ namespace epd
             public:
                 constexpr static std::size_t WIDTH = 240UL;
                 constexpr static std::size_t HEIGHT = 416UL;
+
+            protected:
+                using framebuffer_ptr = std::unique_ptr<std::uint8_t, std::function<void(std::uint8_t*)>>;
 
             public:
                 GDEY037T03(transport* transport);
@@ -42,8 +46,7 @@ namespace epd
             protected:
                 std::size_t m_framebufferSize{ };
                 controllers::UC8253 m_controller;
-                std::unique_ptr<std::uint8_t> m_framebufferA{ };
-                std::unique_ptr<std::uint8_t> m_framebufferB{ };
+                framebuffer_ptr m_framebuffer{ };
         };
     }
 }

@@ -82,6 +82,16 @@ namespace epd
             EPD_CHECK_ERR(result);
             // ==
 
+            // == If we are in monochrome mode, we need to reconfigure the VCOM
+            // and data interval settings to reflect panel timing requirements
+            // that differ from the default settings.
+            if(this->m_config.color_mode == UC8253_color_mode::KW)
+            {
+                result = this->configure_monochrome();
+                EPD_CHECK_ERR(result);
+            }
+            // ==
+
             // == Configure the panel. This will also assert the busy line,
             // so wait for it to clear.
             const auto panelConfig = this->m_config.to_command_data();
@@ -121,6 +131,17 @@ namespace epd
             return EPD_OK;
         }
 
+        error_t UC8253::configure_monochrome()
+        {
+            error_t result{EPD_OK};
+
+            std::array<std::uint8_t, 1> commandPayload{ VCOM_CDI_MONOCHROME };
+            result = this->send_command(UC8253_command::CDI, commandPayload.size(), commandPayload.data());
+            EPD_CHECK_ERR(result);
+
+            return EPD_OK;
+        }
+
         error_t UC8253::deep_sleep()
         {
             error_t result{EPD_OK};
@@ -150,6 +171,22 @@ namespace epd
 
             // Now, wait for the controller to signal that it is no longer busy.
             result = this->wait_for_busy_pin();
+            EPD_CHECK_ERR(result);
+
+            return EPD_OK;
+        }
+
+        error_t UC8253::send_framebuffer(UC8253_framebuffer framebuffer, std::size_t dataLength, const std::uint8_t* data)
+        {
+            error_t result{EPD_OK};
+
+            // Decide which command needs to be sent - DTM1 is for framebuffer 1,
+            // DTM2 is for framebuffer 2
+            const auto command =
+                (framebuffer == UC8253_framebuffer::BUFFER_1 ? UC8253_command::DTM1 : UC8253_command::DTM2);
+
+            // Send over buffer.
+            result = this->send_command(command, dataLength, data);
             EPD_CHECK_ERR(result);
 
             return EPD_OK;

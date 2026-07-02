@@ -50,10 +50,12 @@ void app_main(void)
 
     epd::panels::GDEY037T03 panel{&transport};
 
-    panel.initialize();
-    panel.fill(epd::color::white);
-    panel.refresh();
-    panel.sleep();
+    status = panel.initialize();
+    if(status != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to intialize display");
+    }
+
 
     ESP_LOGI(TAG, "Start idling");
     while(true)

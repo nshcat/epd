@@ -62,6 +62,15 @@ namespace epd
             TSSET = 0xE5
         };
 
+        enum class UC8253_framebuffer
+        {
+            // BLACK color channel in KWR mode, OLD channel in KW mode
+            BUFFER_1 = 0x0,
+
+            // RED color channel in KWR mode, NEW channel in KW mode
+            BUFFER_2 = 0x1
+        };
+
         enum class UC8253_LUT_source
             : std::uint8_t
         {
@@ -130,7 +139,7 @@ namespace epd
 
         public:
             std::array<std::uint8_t, 2> to_command_data() const;
-
+            
         public:
             UC8253_resolution resolution{UC8253_resolution::RES_240x120};
             UC8253_LUT_source lut{UC8253_LUT_source::OTP};
@@ -163,6 +172,9 @@ namespace epd
                 // checking the busy line
                 constexpr static std::size_t DRF_EXTRA_DELAY = 1000UL;
 
+                // VCOM CDI setting for monochrome mode
+                constexpr static std::size_t VCOM_CDI_MONOCHROME = 0x97;
+
             public:
                 UC8253(transport* transport);
 
@@ -181,11 +193,13 @@ namespace epd
                 error_t wait_for_busy_pin();
                 error_t hardware_reset();
                 error_t deep_sleep();
-
                 // Update display from internal framebuffer contents
                 error_t update();
-
+                error_t send_framebuffer(UC8253_framebuffer framebuffer, std::size_t dataLength, const std::uint8_t* data);
                 UC8253_config* config();
+
+            protected:
+                error_t configure_monochrome();
 
             protected:
                 transport* m_transport;
