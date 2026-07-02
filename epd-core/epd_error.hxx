@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #define EPD_OK 0
+#define EPD_FAIL -1
 #define EPD_IS_ERR(x) ((x) != EPD_OK)
 #define EPD_CHECK_ERR(x) do{ if(EPD_IS_ERR(x)) { return (x); } } while(0)
 

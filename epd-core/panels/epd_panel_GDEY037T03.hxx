@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "../epd_panel.hxx"
-#include "../controllers/epd_controller_uc8253.hxx"
+#include "../controllers/epd_controller_UC8253.hxx"
 
 namespace epd
 {

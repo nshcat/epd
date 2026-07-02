@@ -47,7 +47,7 @@ namespace epd
             virtual error_t delay(std::uint32_t milliseconds) override;
             virtual bool has_hw_reset() const override;
             virtual bool has_busy_pin() const override;
-            virtual error_t wait_for_busy() override;
+            virtual error_t get_busy_pin(pin_state* state) override;
             virtual error_t set_dc_pin(pin_state state) override;
             virtual error_t set_cs_pin(pin_state state) override;
             virtual error_t set_reset_pin(pin_state state) override;

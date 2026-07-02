@@ -115,20 +115,20 @@ namespace epd
             return this->m_pins.has_busy_pin();
         }
 
-        error_t transport::wait_for_busy()
+        error_t transport::get_busy_pin(pin_state* state)
         {
             if(!this->has_busy_pin())
             {
-                ESP_LOGE(TAG, "Can't wait for busy signal: Transport has no busy GPIO pin assigned");
+                ESP_LOGE(TAG, "No busy GPIO pin assigned to transport");
                 return ESP_ERR_INVALID_STATE;
             }
 
-            while(gpio_get_level(this->m_pins.busy_pin) == 1)
+            if(!state)
             {
-                // We yield here briefly so the WDT does not terminate our application.
-                // No busy waiting allowed! :^)
-                vTaskDelay(1);
+                return ESP_ERR_INVALID_ARG;
             }
+
+            *state = (gpio_get_level(this->m_pins.busy_pin) == 1) ? pin_state::high : pin_state::low;
 
             return ESP_OK;
         }

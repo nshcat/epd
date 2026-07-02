@@ -35,7 +35,7 @@ namespace epd
 
         virtual bool has_hw_reset() const = 0;
         virtual bool has_busy_pin() const = 0;
-        virtual error_t wait_for_busy() = 0;
+        virtual error_t get_busy_pin(pin_state* state) = 0;
         virtual error_t set_dc_pin(pin_state state) = 0;
         virtual error_t set_cs_pin(pin_state state) = 0;
         virtual error_t set_reset_pin(pin_state state) = 0;
