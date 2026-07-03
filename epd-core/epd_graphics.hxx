@@ -1,10 +1,13 @@
 #pragma once
 
+#include <string_view>
+
 #include "epd_color.hxx"
 #include "epd_error.hxx"
 #include "epd_panel.hxx"
 #include "epd_transport.hxx"
 #include "epd_types.hxx"
+#include "fonts/gfxfont.h"
 
 namespace epd
 {
@@ -29,28 +32,37 @@ namespace epd
         graphics(graphics&&) = default;
         graphics& operator=(graphics&&) = default;
 
-    public:
+    public: // Display configuration and operations
         void set_rotation(rotation rotation);
         epd::rotation current_rotation() const;
-        std::uint32_t width() const;
-        std::uint32_t height() const;
+        std::int32_t width() const;
+        std::int32_t height() const;
+        size dimensions() const;
 
         void clear(color color);
         error_t display();
 
-    public:
-        void draw_pixel(position position, color color);
-        void draw_hline(position position, std::uint32_t width, color color);
-        void draw_vline(position position, std::uint32_t height, color color);
-        void draw_rect(position topLeft, std::uint32_t width, std::uint32_t height, color color);
-        void fill_rect(position topLeft, std::uint32_t width, std::uint32_t height, color color);
+    public: // Drawing primitives
+        void draw_pixel(position location, color color);
+        void draw_hline(position location, std::int32_t width, color color);
+        void draw_vline(position location, std::int32_t height, color color);
+        void draw_rect(position topLeft, size dimensions, color color);
+        void fill_rect(position topLeft, size dimensions, color color);
         void draw_line(position from, position to, color color);
 
+    public: // Text operations
+        cursor draw_text(const GFXfont* font, position location, std::string_view string, color color);
+        cursor draw_text(const GFXfont* font, cursor location, std::string_view string, color color);
+
+    protected:
+        cursor draw_char(const GFXfont* font, cursor pos, char character, color color);
+        void draw_glyph(const GFXfont* font, const GFXglyph* glyph, cursor position, color color);
+        
     protected:
         panel* m_panel;
         epd::transport* m_transport; 
-        std::uint32_t m_width;
-        std::uint32_t m_height;
+        std::int32_t m_width;
+        std::int32_t m_height;
         epd::rotation m_rotation{epd::rotation::by_0deg};
     };
 }
