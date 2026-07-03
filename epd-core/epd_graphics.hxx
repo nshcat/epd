@@ -62,6 +62,7 @@ namespace epd
 
         void clear(color color);
         error_t display();
+        error_t display_partial(const rectangle& area);
 
     public: // Drawing primitives
         void draw_pixel(position location, color color);
@@ -81,6 +82,7 @@ namespace epd
         cursor draw_char(const GFXfont* font, cursor pos, char character, color color);
         void draw_glyph(const GFXfont* font, const GFXglyph* glyph, cursor position, color color);
         void measure_char(const GFXfont* font, internal::text_measurement_state* state, char character);
+        rectangle map_rectangle_to_panel(const rectangle& rect) const;
 
     protected:
         panel* m_panel;

@@ -5,6 +5,7 @@
 
 #include "../epd_error.hxx"
 #include "../epd_transport.hxx"
+#include "../epd_types.hxx"
 
 
 namespace epd
@@ -60,6 +61,29 @@ namespace epd
             PWS = 0xE3,
             LVSEL = 0xE4,
             TSSET = 0xE5
+        };
+
+        enum class UC8253_refresh_mode
+        {
+            // Full screen refresh. We afford ourselves a bit slower
+            // refresh to make sure that the panel doesnt show any artifacts.
+            FULL_REFRESH = 0,
+
+            // Fast, partial refresh - requires a refresh window, and will
+            // fake a high ambient temperature to get the most speed out of the
+            // panel. A full screen refresh should be performed after around 6
+            // partial refresh operations, in order to avoid artifacts.
+            PARTIAL_REFRESH = 1
+        };
+
+        enum class UC8253_temperature_source
+            : std::uint8_t
+        {
+            // Temperature is read from internal sensor or external LM75
+            SENSOR = 0x0,
+
+            // Temperature is read from TS_SET register
+            OVERRIDE = 0x1
         };
 
         enum class UC8253_framebuffer
@@ -173,7 +197,22 @@ namespace epd
                 constexpr static std::size_t DRF_EXTRA_DELAY = 10UL;
 
                 // VCOM CDI setting for monochrome mode
-                constexpr static std::size_t VCOM_CDI_MONOCHROME = 0x97;
+                constexpr static std::uint8_t VCOM_CDI_MONOCHROME = 0x97;
+
+                // VCOM CDI setting for partial refresh mode, this turns off
+                // the border rendering around the partial refresh area by
+                // setting the border to floating.
+                constexpr static std::uint8_t VCOM_CDI_PARTIAL = 0xD7;
+
+                constexpr static std::uint8_t CCSET_TSFIX_MASK = 0b1;  
+                constexpr static std::size_t CCSET_TSFIX_SHIFT = 1UL;  
+
+                // Ambient temperature override for full refresh mode, ~1.5s refresh time
+                constexpr static std::uint8_t FULL_REFRESH_TSSET = 0x5F;
+
+                // Ambient temperature override for partial refresh mode, quicker refresh
+                // time, but more artifacts
+                constexpr static std::uint8_t PARTIAL_REFRESH_TSSET = 0x6E;
 
             public:
                 UC8253(transport* transport);
@@ -188,18 +227,23 @@ namespace epd
                 error_t send_command(UC8253_command command);
                 error_t send_command(UC8253_command command, std::size_t dataLength, const std::uint8_t* data);
 
-                error_t power_up();
+                error_t power_up(UC8253_refresh_mode refreshMode);
                 error_t power_down();
                 error_t wait_for_busy_pin();
                 error_t hardware_reset();
                 error_t deep_sleep();
                 // Update display from internal framebuffer contents
                 error_t update();
+                // Perform partial display update from internal framebuffer contents
+                error_t update_partial(const rectangle& bounds);
                 error_t send_framebuffer(UC8253_framebuffer framebuffer, std::size_t dataLength, const std::uint8_t* data);
                 UC8253_config* config();
 
             protected:
-                error_t configure_monochrome();
+                error_t disable_border();
+                error_t set_temperature_source(UC8253_temperature_source tempSource);
+                error_t set_temperature_override(std::uint8_t temperature);
+                error_t setup_refresh_window(const rectangle& bounds);
 
             protected:
                 transport* m_transport;

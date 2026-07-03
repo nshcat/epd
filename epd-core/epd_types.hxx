@@ -58,6 +58,10 @@ namespace epd
         rectangle(position location, size dimensions);
 
         static rectangle empty();
+        static rectangle from_points(position topLeft, position bottomRight);
+
+    public:
+        position bottom_right() const;
 
     public:
         // Adds given pad amount to both left and right side of the rectangle.

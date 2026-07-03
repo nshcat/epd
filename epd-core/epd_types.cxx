@@ -56,6 +56,22 @@ namespace epd
         return rectangle{{0, 0}, {0, 0}};
     }
 
+    rectangle rectangle::from_points(position topLeft, position bottomRight)
+    {
+        const auto width = (bottomRight.x - topLeft.x) + 1;
+        const auto height = (bottomRight.y - topLeft.y) + 1;
+
+        return rectangle{topLeft, size{width, height}};
+    }
+
+    position rectangle::bottom_right() const
+    {
+        return {
+            this->location.x + this->dimensions.width - 1,
+            this->location.y + this->dimensions.height - 1
+        };
+    }
+
     void rectangle::pad_horizontal(std::int32_t padAmount)
     {
         // Adjust location of top left.

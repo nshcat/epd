@@ -16,6 +16,11 @@ namespace epd
 
         }
 
+        bool GDEY037T03::supports_partial_refresh() const
+        {
+            return true;
+        }
+
         error_t GDEY037T03::initialize()
         {
             error_t result = EPD_OK;
@@ -91,37 +96,45 @@ namespace epd
             error_t result = EPD_OK;
 
             // == First, power up controller
-            result = this->m_controller.power_up();
+            result = this->m_controller.power_up(controllers::UC8253_refresh_mode::FULL_REFRESH);
             EPD_CHECK_ERR(result);
             // ==
 
             // == Then, send the frame buffers.
-            // First, write the old data. It resides in framebuffer 1.
-            result = this->m_controller.send_framebuffer(
-                controllers::UC8253_framebuffer::BUFFER_1,
-                this->m_framebufferSize,
-                this->m_oldFramebuffer.get()
-            );
+            result = this->send_framebuffers();
             EPD_CHECK_ERR(result);
-
-            // Now, send the new data. It resides in framebuffer 2.
-            result = this->m_controller.send_framebuffer(
-                controllers::UC8253_framebuffer::BUFFER_2,
-                this->m_framebufferSize,
-                this->m_newFramebuffer.get()
-            );
-            EPD_CHECK_ERR(result);
-            // ==
-
-            // == The contents of the new framebuffer now have to become the
-            // old framebuffer content.
-            // XXX Do some kind of buffer switch using pointers so we dont have
-            //     to copy the buffer contents here?
-            std::copy(this->m_newFramebuffer.get(), this->m_newFramebuffer.get() + this->m_framebufferSize, this->m_oldFramebuffer.get());
             // ==
 
             // == Finally, perform a panel update from internal RAM.
             result = this->m_controller.update();
+            EPD_CHECK_ERR(result);
+            // ==
+
+            // == Afterwards, make sure to power down controller in order to 
+            // save energy.
+            result = this->m_controller.power_down();
+            EPD_CHECK_ERR(result);
+            // ==
+
+            return EPD_OK;
+        }
+
+        error_t GDEY037T03::partial_refresh(const rectangle& bounds)
+        {
+            error_t result{EPD_OK};
+
+            // == First, power up controller
+            result = this->m_controller.power_up(controllers::UC8253_refresh_mode::PARTIAL_REFRESH);
+            EPD_CHECK_ERR(result);
+            // ==
+
+            // == Then, send the frame buffers.
+            result = this->send_framebuffers();
+            EPD_CHECK_ERR(result);
+            // ==
+
+            // == Finally, ask the controller to perform a partial update from RAM.
+            result = this->m_controller.update_partial(bounds);
             EPD_CHECK_ERR(result);
             // ==
 
@@ -183,6 +196,37 @@ namespace epd
             );
 
             std::fill(framebuffer, framebuffer + framebufferSize, 0x00);
+
+            return EPD_OK;
+        }
+
+        error_t GDEY037T03::send_framebuffers()
+        {
+            error_t result{EPD_OK};
+
+            // == First, write the old data. It resides in framebuffer 1.
+            result = this->m_controller.send_framebuffer(
+                controllers::UC8253_framebuffer::BUFFER_1,
+                this->m_framebufferSize,
+                this->m_oldFramebuffer.get()
+            );
+            EPD_CHECK_ERR(result);
+            // ==
+
+            // == Now, send the new data. It resides in framebuffer 2.
+            result = this->m_controller.send_framebuffer(
+                controllers::UC8253_framebuffer::BUFFER_2,
+                this->m_framebufferSize,
+                this->m_newFramebuffer.get()
+            );
+            EPD_CHECK_ERR(result);
+            // ==
+
+            // == The contents of the new framebuffer now have to become the
+            // old framebuffer content.
+            // XXX Do some kind of buffer switch using pointers so we dont have
+            //     to copy the buffer contents here?
+            std::copy(this->m_newFramebuffer.get(), this->m_newFramebuffer.get() + this->m_framebufferSize, this->m_oldFramebuffer.get());
 
             return EPD_OK;
         }

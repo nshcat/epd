@@ -1,5 +1,6 @@
 #include "epd_graphics.hxx"
 #include "epd_error.hxx"
+#include "epd_panel.hxx"
 #include "epd_types.hxx"
 #include "fonts/gfxfont.h"
 #include <cstdlib>
@@ -99,6 +100,34 @@ namespace epd
         error_t result{EPD_OK};
 
         result = this->m_panel->refresh();
+        EPD_CHECK_ERR(result);
+
+        result = this->m_panel->sleep();
+        EPD_CHECK_ERR(result);
+
+        return EPD_OK;
+    }
+
+    error_t graphics::display_partial(const rectangle& area)
+    {
+        // Empty refresh area is not okay
+        if(area.dimensions.height <= 0 || area.dimensions.width <= 0)
+        {
+            return EPD_FAIL;
+        }
+
+        // Panel might not support partial refresh
+        if(!this->m_panel->supports_partial_refresh())
+        {
+            return EPD_FAIL;
+        }
+
+        error_t result{EPD_OK};
+
+        // Adjust refresh area for current rotation
+        const auto adjustedArea = this->map_rectangle_to_panel(area);
+
+        result = this->m_panel->partial_refresh(adjustedArea);
         EPD_CHECK_ERR(result);
 
         result = this->m_panel->sleep();

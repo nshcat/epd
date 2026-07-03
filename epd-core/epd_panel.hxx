@@ -29,11 +29,13 @@ namespace epd
         std::uint32_t width() const;
         std::uint32_t height() const;
         epd::transport* transport() const;
+        virtual bool supports_partial_refresh() const = 0;
 
     public: // Panel management
         virtual error_t initialize() = 0;
         virtual error_t sleep() = 0;
         virtual error_t refresh() = 0;
+        virtual error_t partial_refresh(const rectangle& bounds) = 0;
         
     public: // Panel graphics operations
         virtual error_t fill(color color) = 0;

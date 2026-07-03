@@ -33,10 +33,14 @@ namespace epd
                 GDEY037T03(GDEY037T03&&) = default;
                 GDEY037T03& operator=(GDEY037T03&&) = default;
 
+            public: // Panel properties
+                virtual bool supports_partial_refresh() const override;
+
             public: // Panel management
                 virtual error_t initialize() override;
                 virtual error_t sleep() override;
                 virtual error_t refresh() override;
+                virtual error_t partial_refresh(const rectangle& bounds) override;
                 
             public: // Panel graphics operations
                 virtual error_t fill(color color) override;
@@ -45,6 +49,7 @@ namespace epd
             protected:
                 error_t setup_framebuffers();
                 error_t allocate_framebuffer(framebuffer_ptr* target, std::size_t framebufferSize);
+                error_t send_framebuffers();
 
             protected:
                 std::size_t m_framebufferSize{ };

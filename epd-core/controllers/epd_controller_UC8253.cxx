@@ -63,7 +63,7 @@ namespace epd
             return this->m_transport->send_command(static_cast<std::uint8_t>(command), dataLength, data);
         }
 
-        error_t UC8253::power_up()
+        error_t UC8253::power_up(UC8253_refresh_mode refreshMode)
         {
             error_t result{EPD_OK};
 
@@ -85,9 +85,39 @@ namespace epd
             // == If we are in monochrome mode, we need to reconfigure the VCOM
             // and data interval settings to reflect panel timing requirements
             // that differ from the default settings.
-            if(this->m_config.color_mode == UC8253_color_mode::KW)
+            /*if(this->m_config.color_mode == UC8253_color_mode::KW)
             {
                 result = this->configure_monochrome();
+                EPD_CHECK_ERR(result);
+            }*/
+            // ==
+
+            // == Setup panel temperature sensor override.
+            // For partial refresh mode, we force a faster panel refresh procedure
+            // by faking a very high ambient temperature (since the ink particles move
+            // more quickly if the enclosing liquid is warmer, this causes the controller
+            // to be quicker with the refresh). This will accumulate artifacts over time though!
+            if(refreshMode == UC8253_refresh_mode::PARTIAL_REFRESH)
+            {
+                result = this->set_temperature_source(UC8253_temperature_source::OVERRIDE);
+                EPD_CHECK_ERR(result);
+
+                result = this->set_temperature_override(UC8253::PARTIAL_REFRESH_TSSET);
+                EPD_CHECK_ERR(result);
+
+                // Also, set VCOM to floating for the border, otherwise we would mess up the pixels
+                // surrounding our partial refresh region
+                result = this->disable_border();
+                EPD_CHECK_ERR(result);
+            }
+            else
+            {
+                // For full refreshs, we afford ourselves way more time to refresh the screen,
+                // in order to ensure that no artifacts will appear.
+                result = this->set_temperature_source(UC8253_temperature_source::OVERRIDE);
+                EPD_CHECK_ERR(result);
+
+                result = this->set_temperature_override(UC8253::FULL_REFRESH_TSSET);
                 EPD_CHECK_ERR(result);
             }
             // ==
@@ -131,7 +161,7 @@ namespace epd
             return EPD_OK;
         }
 
-        error_t UC8253::configure_monochrome()
+        /*error_t UC8253::configure_monochrome()
         {
             error_t result{EPD_OK};
 
@@ -140,6 +170,33 @@ namespace epd
             EPD_CHECK_ERR(result);
 
             return EPD_OK;
+        }*/
+
+        error_t UC8253::disable_border()
+        {
+            error_t result{EPD_OK};
+
+            std::array<std::uint8_t, 1> commandPayload{ VCOM_CDI_PARTIAL };
+            result = this->send_command(UC8253_command::CDI, commandPayload.size(), commandPayload.data());
+            EPD_CHECK_ERR(result);
+
+            return EPD_OK;
+        }
+
+        error_t UC8253::set_temperature_source(UC8253_temperature_source tempSource)
+        {
+            const std::uint8_t ccsetConfig
+                = (static_cast<std::uint8_t>(tempSource) & UC8253::CCSET_TSFIX_MASK) << UC8253::CCSET_TSFIX_SHIFT;
+               
+            return this->send_command(UC8253_command::CCSET, 1UL, &ccsetConfig);
+        }
+
+
+        error_t UC8253::set_temperature_override(std::uint8_t temperature)
+        {
+            std::array<std::uint8_t, 1> commandPayload{ temperature };
+
+            return this->send_command(UC8253_command::TSSET, commandPayload.size(), commandPayload.data());
         }
 
         error_t UC8253::deep_sleep()
@@ -171,6 +228,61 @@ namespace epd
 
             // Now, wait for the controller to signal that it is no longer busy.
             result = this->wait_for_busy_pin();
+            EPD_CHECK_ERR(result);
+
+            return EPD_OK;
+        }
+
+        error_t UC8253::update_partial(const rectangle& bounds)
+        {
+            error_t result{EPD_OK};
+
+            // Force panel into partial refresh mode
+            result = this->send_command(UC8253_command::PTIN);
+            EPD_CHECK_ERR(result);
+
+            // Setup partial refresh window
+            result = this->setup_refresh_window(bounds);
+            EPD_CHECK_ERR(result);
+
+            // Send display refresh command
+            result = this->send_command(UC8253_command::DRF);
+            EPD_CHECK_ERR(result);
+
+            // To be safe, wait a little bit before checking busy line.
+            // Otherwise, the controller might not have had enough time to assert it.
+            result = this->m_transport->delay(UC8253::DRF_EXTRA_DELAY);
+            EPD_CHECK_ERR(result);
+
+            // Now, wait for the controller to signal that it is no longer busy.
+            result = this->wait_for_busy_pin();
+            EPD_CHECK_ERR(result);
+
+            return EPD_OK;
+        }
+
+        error_t UC8253::setup_refresh_window(const rectangle& bounds)
+        {
+            error_t result{EPD_OK};
+
+            std::array<std::uint8_t, 7> commandData{};
+            const auto topLeft = bounds.location;
+            const auto bottomRight = bounds.bottom_right();
+
+            // x start
+            commandData[0] = topLeft.x;
+            // x end
+            commandData[1] = bottomRight.x;
+            // y start, larger than 8 bits
+            commandData[2] =  topLeft.y / 256;
+            commandData[3] =  topLeft.y % 256;
+            // y end, larger than 8 bits
+            commandData[4] =  bottomRight.y / 256;
+            commandData[5] =  bottomRight.y % 256;
+            // End marker
+            commandData[6] = 0x01;
+
+            result = this->send_command(UC8253_command::PTL, commandData.size(), commandData.data());
             EPD_CHECK_ERR(result);
 
             return EPD_OK;
