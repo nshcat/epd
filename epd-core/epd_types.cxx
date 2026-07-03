@@ -39,4 +39,38 @@ namespace epd
     {
         this->x += glyphWidth;
     }
+
+    position cursor::to_position() const
+    {
+        return position{this->x, this->y};
+    }
+
+    rectangle::rectangle(position location, size dimensions)
+        : location{location}, dimensions{dimensions}
+    {
+
+    }
+
+    rectangle rectangle::empty()
+    {
+        return rectangle{{0, 0}, {0, 0}};
+    }
+
+    void rectangle::pad_horizontal(std::int32_t padAmount)
+    {
+        // Adjust location of top left.
+        this->location.x -= padAmount;
+
+        // We need to add twice the padding amount to the width.
+        this->dimensions.width += 2 * padAmount;
+    }
+        
+    void rectangle::pad_vertical(std::int32_t padAmount)
+    {
+        // Adjust location of top left.
+        this->location.y -= padAmount;
+
+        // We need to add twice the padding amount to the height.
+        this->dimensions.height += 2 * padAmount;
+    }
 }

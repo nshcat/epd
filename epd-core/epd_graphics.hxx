@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <string_view>
 
 #include "epd_color.hxx"
@@ -11,6 +12,26 @@
 
 namespace epd
 {
+    namespace internal
+    {
+        struct text_measurement_state
+        {
+        public:
+            text_measurement_state(cursor location);
+
+        public:
+            rectangle to_rectangle() const;
+
+        public:
+            cursor location;
+            position initialLocation;
+            std::int32_t minx{ std::numeric_limits<std::int32_t>::max() };
+            std::int32_t maxx{ -1 };
+            std::int32_t miny{ std::numeric_limits<std::int32_t>::max() };
+            std::int32_t maxy{ -1 };
+        };
+    }
+
     enum class rotation
         : std::uint8_t
     {
@@ -46,18 +67,21 @@ namespace epd
         void draw_pixel(position location, color color);
         void draw_hline(position location, std::int32_t width, color color);
         void draw_vline(position location, std::int32_t height, color color);
-        void draw_rect(position topLeft, size dimensions, color color);
-        void fill_rect(position topLeft, size dimensions, color color);
+        void draw_rect(rectangle rect, color color);
+        void fill_rect(rectangle rect, color color);
         void draw_line(position from, position to, color color);
 
     public: // Text operations
         cursor draw_text(const GFXfont* font, position location, std::string_view string, color color);
         cursor draw_text(const GFXfont* font, cursor location, std::string_view string, color color);
+        rectangle measure_text(const GFXfont* font, position location, std::string_view string);
+        rectangle measure_text(const GFXfont* font, cursor location, std::string_view string);
 
     protected:
         cursor draw_char(const GFXfont* font, cursor pos, char character, color color);
         void draw_glyph(const GFXfont* font, const GFXglyph* glyph, cursor position, color color);
-        
+        void measure_char(const GFXfont* font, internal::text_measurement_state* state, char character);
+
     protected:
         panel* m_panel;
         epd::transport* m_transport; 

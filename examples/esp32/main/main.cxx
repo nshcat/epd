@@ -87,9 +87,14 @@ void app_main(void)
 
     // Rectangle!
     graphics.draw_rect(
-        epd::position{25, 55}, 
-        epd::size{75, 45}, 
+        { epd::position{25, 55}, epd::size{75, 45} }, 
         epd::color::black);
+
+    // Filled rectangle!
+    graphics.fill_rect(
+        { epd::position{95, 55}, epd::size{75, 45} },
+        epd::color::black
+    );
 
     // And finally, some text.
     graphics.draw_text(
@@ -97,6 +102,26 @@ void app_main(void)
         epd::position{10, 175}, 
         "Hello World! :3", 
         epd::color::black);
+
+    // We can also draw it inverted! For now, that involved measuring the text manually.
+    std::string_view invertedText{"I'm inverted!"};
+    epd::position invertedTextLocation{10, 210};
+    auto textRect = graphics.measure_text(&FreeSans18pt7b, invertedTextLocation, invertedText);
+
+    // Make the bounding box a bit bigger!
+    textRect.pad_horizontal(2);
+    textRect.pad_vertical(2);
+
+    // Then we need to draw the text background.
+    graphics.fill_rect(textRect, epd::color::black);
+
+    // Finally, we need to draw the text on top of it.
+    graphics.draw_text(
+        &FreeSans18pt7b,
+        invertedTextLocation,
+        invertedText,
+        epd::color::white
+    );
 
     // Then we display the updated canvas contents on the underlying panel.
     status = graphics.display();

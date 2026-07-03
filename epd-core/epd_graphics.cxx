@@ -7,6 +7,38 @@
 
 namespace epd
 {
+    namespace internal
+    {
+        text_measurement_state::text_measurement_state(cursor location)
+            : location{location}, initialLocation(location.to_position())
+        {
+
+        }
+
+        rectangle text_measurement_state::to_rectangle() const
+        {
+            position topLeft = this->initialLocation;
+            size dimensions{0, 0};
+
+            // Check if we were able to calculate sensible
+            // values for x and y range.
+            // If so, apply them to the rectangle dimensions.
+            if(this->maxx >= this->minx)
+            {
+                topLeft.x = this->minx;
+                dimensions.width = (this->maxx - this->minx + 1);
+            }
+
+            if(this->maxy >= this->miny)
+            {
+                topLeft.y = this->miny;
+                dimensions.height = (this->maxy - this->miny + 1);
+            }
+
+            return rectangle{ topLeft, dimensions };
+        }
+    }
+
     graphics::graphics(panel* panel, epd::rotation rotation)
         : m_panel{panel}, m_transport{panel->transport()}
     {
@@ -172,13 +204,33 @@ namespace epd
         }
     }
 
-    void graphics::draw_rect(position topLeft, size dimensions, color color)
+    void graphics::draw_rect(rectangle rect, color color)
     {
+        const auto topLeft = rect.location;
+        const auto dimensions = rect.dimensions;
+
         this->draw_hline(topLeft, dimensions.width, color);
         this->draw_hline(epd::position{topLeft.x, topLeft.y + (std::int32_t)dimensions.height - 1}, dimensions.width, color);
 
         this->draw_vline(topLeft, dimensions.height, color);
         this->draw_vline(epd::position{topLeft.x + (std::int32_t)dimensions.width - 1, topLeft.y}, dimensions.height, color);
+    }
+
+    void graphics::fill_rect(rectangle rect, color color)
+    {
+        // We do not draw empty rectangles!
+        if(rect.dimensions.width <= 0 || rect.dimensions.height <= 0)
+        {
+            return;
+        }
+
+        for(std::int32_t ix = 0; ix < rect.dimensions.width; ++ix)
+        {
+            for(std::int32_t iy = 0; iy < rect.dimensions.height; ++iy)
+            {
+                this->draw_pixel({rect.location.x + ix, rect.location.y + iy}, color);
+            }
+        }
     }
 
     cursor graphics::draw_text(const GFXfont* font, position position, std::string_view string, color color)
@@ -212,6 +264,99 @@ namespace epd
         }
 
         return position;
+    }
+
+    rectangle graphics::measure_text(const GFXfont* font, position location, std::string_view string)
+    {
+        return this->measure_text(font, cursor{location, this->dimensions()}, string); 
+    }
+
+    rectangle graphics::measure_text(const GFXfont* font, cursor location, std::string_view string)
+    {
+        // Check font pointer..
+        if(!font)
+        {
+            return rectangle::empty();
+        }
+
+        internal::text_measurement_state state{location};
+
+        for(const char character: string)
+        {
+            this->measure_char(font, &state, character);
+        }
+
+        return state.to_rectangle();
+    }
+
+    void graphics::measure_char(const GFXfont* font, internal::text_measurement_state* state, char character)
+    {
+        if(!font || !state)
+        {
+            return;
+        }
+
+        // Handle new line..
+        if(character == '\n')
+        {
+            // Update location, but dont change bounds for now.
+            // Only printable characters do that.
+            state->location.next_line(font->yAdvance);
+        }
+        else if(character == '\t')
+        {
+            // Ignore tabstops for now
+            // XXX TODO figure out how to handle these
+        }
+        else if(character != '\r') // Carriage return gets ignored!
+        {
+            // Determine whether the character falls into the range
+            // of glyphs that the given font can display.
+            if(character < font->first || character > font->last)
+            {
+                // No dice. We cant draw this character. Just skip it.
+                // XXX TODO: We could maybe replace it with a '?' or something?
+                return;
+            }
+
+            // Retrieve the glyph data.
+            const auto glyphIndex = (character - font->first);
+            GFXglyph* glyph = (&font->glyph[glyphIndex]);
+
+            // We might need to do a line wrap if the current character cant fit anymore!
+            if(!state->location.can_fit_glyph(glyph->xOffset + glyph->width))
+            {
+                state->location.next_line(font->yAdvance);
+            }
+
+            // Measure the actual glyph
+            std::int32_t x1 = state->location.x + glyph->xOffset;
+            std::int32_t y1 = state->location.y + glyph->yOffset;
+            std::int32_t x2 = x1 + glyph->width - 1;
+            std::int32_t y2 = y1 + glyph->height - 1;
+
+            if(x1 < state->minx)
+            {
+                state->minx = x1;
+            }
+
+            if(y1 < state->miny)
+            {
+                state->miny = y1;
+            }
+
+            if(x2 > state->maxx)
+            {
+                state->maxx = x2;
+            }
+
+            if(y2 > state->maxy)
+            {
+                state->maxy = y2;
+            }
+
+            state->location.next_character(glyph->xAdvance);
+        }
     }
 
     cursor graphics::draw_char(const GFXfont* font, cursor position, char character, color color)

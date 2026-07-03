@@ -40,6 +40,7 @@ namespace epd
         bool can_fit_glyph(std::int32_t glyphWidth) const;
         // Advance cursor behind the last drawn character.
         void next_character(std::int32_t glyphWidth);
+        position to_position() const;
     
     public:
         std::int32_t x;
@@ -47,5 +48,26 @@ namespace epd
 
     protected:
         size m_displaySize;
+    };
+
+    // Struct representing a 2D rectangle, specified
+    // by a top left location and a 2D size.
+    struct rectangle
+    {
+    public:
+        rectangle(position location, size dimensions);
+
+        static rectangle empty();
+
+    public:
+        // Adds given pad amount to both left and right side of the rectangle.
+        void pad_horizontal(std::int32_t padAmount);
+
+        // Adds given pad amount to both top and bottom side of the rectangle.
+        void pad_vertical(std::int32_t padAmount);
+
+    public:
+        position location;
+        size dimensions;
     };
 }
