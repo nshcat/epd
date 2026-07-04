@@ -1,10 +1,14 @@
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
+
+#include <cstdint>
 
 #include "../epd_error.hxx"
 #include "../epd_panel.hxx"
 #include "controllers/epd_controller_UC8253.hxx"
 #include "epd_panel_GDEY037T03.hxx"
+
 
 namespace epd
 {

@@ -180,14 +180,14 @@ namespace epd
             protected:
                 // How long to wait in between BUSY line checks while waiting for an 
                 // operation to finish
-                constexpr static std::size_t BUSY_WAIT_DELAY = 50UL;
+                constexpr static std::size_t BUSY_WAIT_DELAY = 5UL;
 
                 // How long to wait in between RESET line level changes during
                 // hardware reset sequence
                 constexpr static std::size_t RESET_DELAY = 10UL;
 
                 // Extra time to wait after powering off the panel
-                constexpr static std::size_t POF_EXTRA_DELAY = 1000UL;
+                constexpr static std::size_t POF_EXTRA_DELAY = 10UL; //1000UL;
 
                 // Special magic byte key to confirm intentional deep sleep command
                 constexpr static std::uint8_t DEEP_SLEEP_KEY = 0xA5;

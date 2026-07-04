@@ -12,5 +12,4 @@ idf_component_register(
         "./../epd-core"
     REQUIRES
         "driver"
-        "esp_timer"
 )
