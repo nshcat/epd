@@ -224,33 +224,6 @@ namespace epd
                     bytesLeft -= thisChunkSize;
                     bufferPosition += thisChunkSize;
                 }
-
-                /*for(std::size_t dataIdx = 0UL; dataIdx < dataLength; ++dataIdx)
-                {
-                    spi_transaction_t dataTransaction{ };
-                    dataTransaction.length = 8;
-                    dataTransaction.tx_buffer = &(data[dataIdx]);
-
-                    result = spi_device_polling_transmit(this->m_spiDevice, &dataTransaction);
-                    if(result != ESP_OK)
-                    {
-                        ESP_LOGE(TAG, "Failed to transmit data over SPI");
-                        this->set_cs_pin(pin_state::high);
-                        return result;
-                    }
-                }*/
-
-                /*spi_transaction_t dataTransaction{ };
-                dataTransaction.length = dataLength * 8;
-                dataTransaction.tx_buffer = data;
-
-                result = spi_device_polling_transmit(this->m_spiDevice, &dataTransaction);
-                if(result != ESP_OK)
-                {
-                    ESP_LOGE(TAG, "Failed to transmit data over SPI");
-                    this->set_cs_pin(pin_state::high);
-                    return result;
-                }*/
             }
 
             // No more data to transmit. Deassert CS line.
