@@ -8,7 +8,7 @@
 #include "epd_panel.hxx"
 #include "epd_transport.hxx"
 #include "epd_types.hxx"
-#include "fonts/gfxfont.h"
+#include "epd_font.hxx"
 
 namespace epd
 {
@@ -74,15 +74,15 @@ namespace epd
         void draw_line(const position& from, const position& to, color color);
 
     public: // Text operations
-        cursor draw_text(const GFXfont* font, const position& location, std::string_view string, color color);
-        cursor draw_text(const GFXfont* font, const cursor& location, std::string_view string, color color);
-        rectangle measure_text(const GFXfont* font, const position& location, std::string_view string);
-        rectangle measure_text(const GFXfont* font, const cursor& location, std::string_view string);
+        cursor draw_text(const font* font, const position& location, std::string_view string, color color);
+        cursor draw_text(const font* font, const cursor& location, std::string_view string, color color);
+        rectangle measure_text(const font* font, const position& location, std::string_view string);
+        rectangle measure_text(const font* font, const cursor& location, std::string_view string);
 
     protected:
-        cursor draw_char(const GFXfont* font, const cursor& pos, char character, color color);
-        void draw_glyph(const GFXfont* font, const GFXglyph* glyph, const cursor& position, color color);
-        void measure_char(const GFXfont* font, internal::text_measurement_state* state, char character);
+        cursor draw_char(const font* font, const cursor& pos, char character, color color);
+        void draw_glyph(const font* font, const glyph* glyph, const cursor& position, color color);
+        void measure_char(const font* font, internal::text_measurement_state* state, char character);
 
     public:
         rectangle map_rectangle_to_panel(const rectangle& rect) const;

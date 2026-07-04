@@ -1,10 +1,11 @@
-#include "epd_graphics.hxx"
-#include "epd_error.hxx"
-#include "epd_panel.hxx"
-#include "epd_types.hxx"
-#include "fonts/gfxfont.h"
 #include <cstdlib>
 #include <utility>
+
+#include "epd_graphics.hxx"
+#include "epd_error.hxx"
+#include "epd_font.hxx"
+#include "epd_panel.hxx"
+#include "epd_types.hxx"
 
 namespace epd
 {
@@ -248,12 +249,12 @@ namespace epd
         }
     }
 
-    cursor graphics::draw_text(const GFXfont* font, const position& position, std::string_view string, color color)
+    cursor graphics::draw_text(const font* font, const position& position, std::string_view string, color color)
     {
         return this->draw_text(font, cursor{position, this->dimensions()}, string, color);
     }
 
-    cursor graphics::draw_text(const GFXfont* font, const cursor& startPosition, std::string_view string, color color)
+    cursor graphics::draw_text(const font* font, const cursor& startPosition, std::string_view string, color color)
     {
         if(!font) // Bad pointer? For real? :'(
         {
@@ -283,12 +284,12 @@ namespace epd
         return position;
     }
 
-    rectangle graphics::measure_text(const GFXfont* font, const position& location, std::string_view string)
+    rectangle graphics::measure_text(const font* font, const position& location, std::string_view string)
     {
         return this->measure_text(font, cursor{location, this->dimensions()}, string); 
     }
 
-    rectangle graphics::measure_text(const GFXfont* font, const cursor& location, std::string_view string)
+    rectangle graphics::measure_text(const font* font, const cursor& location, std::string_view string)
     {
         // Check font pointer..
         if(!font)
@@ -306,7 +307,7 @@ namespace epd
         return state.to_rectangle();
     }
 
-    void graphics::measure_char(const GFXfont* font, internal::text_measurement_state* state, char character)
+    void graphics::measure_char(const font* font, internal::text_measurement_state* state, char character)
     {
         if(!font || !state)
         {
@@ -318,7 +319,7 @@ namespace epd
         {
             // Update location, but dont change bounds for now.
             // Only printable characters do that.
-            state->location.next_line(font->yAdvance);
+            state->location.next_line(font->y_advance);
         }
         else if(character == '\t')
         {
@@ -329,7 +330,7 @@ namespace epd
         {
             // Determine whether the character falls into the range
             // of glyphs that the given font can display.
-            if(character < font->first || character > font->last)
+            if(!font->has_character(character))
             {
                 // No dice. We cant draw this character. Just skip it.
                 // XXX TODO: We could maybe replace it with a '?' or something?
@@ -337,18 +338,18 @@ namespace epd
             }
 
             // Retrieve the glyph data.
-            const auto glyphIndex = (character - font->first);
-            GFXglyph* glyph = (&font->glyph[glyphIndex]);
+            const glyph* glyph{ };
+            font->glyph_for(character, &glyph);
 
             // We might need to do a line wrap if the current character cant fit anymore!
-            if(!state->location.can_fit_glyph(glyph->xOffset + glyph->width))
+            if(!state->location.can_fit_glyph(glyph->x_offset + glyph->width))
             {
-                state->location.next_line(font->yAdvance);
+                state->location.next_line(font->y_advance);
             }
 
             // Measure the actual glyph
-            std::int32_t x1 = state->location.x + glyph->xOffset;
-            std::int32_t y1 = state->location.y + glyph->yOffset;
+            std::int32_t x1 = state->location.x + glyph->x_offset;
+            std::int32_t y1 = state->location.y + glyph->y_offset;
             std::int32_t x2 = x1 + glyph->width - 1;
             std::int32_t y2 = y1 + glyph->height - 1;
 
@@ -372,11 +373,11 @@ namespace epd
                 state->maxy = y2;
             }
 
-            state->location.next_character(glyph->xAdvance);
+            state->location.next_character(glyph->x_advance);
         }
     }
 
-    cursor graphics::draw_char(const GFXfont* font, const cursor& startPosition, char character, color color)
+    cursor graphics::draw_char(const font* font, const cursor& startPosition, char character, color color)
     {
         // Someone might have been naughty and passed us a null pointer..
         if(!font)
@@ -389,7 +390,7 @@ namespace epd
         // Handle new line.
         if(character == '\n')
         {
-            position.next_line(font->yAdvance);
+            position.next_line(font->y_advance);
             return position;
         }
         else if(character == '\t')
@@ -403,7 +404,7 @@ namespace epd
         {
             // Determine whether the character falls into the range
             // of glyphs that the given font can display.
-            if(character < font->first || character > font->last)
+            if(!font->has_character(character))
             {
                 // No dice. We cant draw this character. Just skip it.
                 // XXX TODO: We could maybe replace it with a '?' or something?
@@ -411,17 +412,17 @@ namespace epd
             }
 
             // Retrieve the glyph data.
-            const auto glyphIndex = (character - font->first);
-            GFXglyph* glyph = (&font->glyph[glyphIndex]);
+            const glyph* glyph{ };
+            font->glyph_for(character, &glyph);
 
             // The glyph might not have a bitmap attached to it..
             // So make sure to check that
             if(glyph->width > 0 && glyph->height > 0)
             {
                 // Check if we need to wrap..
-                if(!position.can_fit_glyph(glyph->xOffset + glyph->width))
+                if(!position.can_fit_glyph(glyph->x_offset + glyph->width))
                 {
-                    position.next_line(font->yAdvance);
+                    position.next_line(font->y_advance);
                 }
 
                 // Actually draw the glyph
@@ -431,7 +432,7 @@ namespace epd
             // Either way, we will be advancing the cursors x position.
             // If the glyph did not have a bitmap attached to it, it will
             // result in a blank space.
-            position.next_character(glyph->xAdvance);
+            position.next_character(glyph->x_advance);
 
             return position;
         }
@@ -439,7 +440,7 @@ namespace epd
         return position;
     }
 
-    void graphics::draw_glyph(const GFXfont* font, const GFXglyph* glyph, const cursor& position, color color)
+    void graphics::draw_glyph(const font* font, const glyph* glyph, const cursor& position, color color)
     {
         if(!font || !glyph)
         {
@@ -448,22 +449,24 @@ namespace epd
 
         std::uint8_t bits{ };
         std::uint8_t bit{ };
-        std::uint32_t bitmapOffset = glyph->bitmapOffset;
 
+        const auto bitmapData = font->bitmap_data_for(glyph);
+        std::uint32_t bitmapDataIndex{ };
+ 
         for(int32_t iy = 0; iy < glyph->height; ++iy)
         {
             for(int32_t ix = 0; ix < glyph->width; ++ix)
             {
                 if(!(bit++ & 7))
                 {
-                    bits = font->bitmap[bitmapOffset];
-                    bitmapOffset++;
+                    bits = bitmapData[bitmapDataIndex];
+                    bitmapDataIndex++;
                 }
 
                 if(bits & 0x80)
                 {
-                    const auto position_x = position.x + glyph->xOffset + ix;
-                    const auto position_y = position.y + glyph->yOffset + iy;
+                    const auto position_x = position.x + glyph->x_offset + ix;
+                    const auto position_y = position.y + glyph->y_offset + iy;
                     this->draw_pixel({position_x, position_y}, color);
                 }
 

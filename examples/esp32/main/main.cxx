@@ -6,11 +6,10 @@
 #include "epd_types.hxx"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
-#include "hal/i2s_hal.h"
 
 #include <epd_esp32.hxx>
 #include <panels/epd_panel_GDEY037T03.hxx>
-#include <fonts/FreeSans18pt7b.h>
+#include <fonts/epd_font_FreeSans18pt7b.hxx>
 
 
 #define EPAPER_HOST SPI2_HOST
@@ -97,8 +96,10 @@ void app_main(void)
     );
 
     // And finally, some text.
+    const auto* font = &epd::fonts::FreeSans18pt7b;
+
     const auto helloWorldCursor = graphics.draw_text(
-        &FreeSans18pt7b, 
+        font, 
         epd::position{10, 175}, 
         "Hello World! :3 ", 
         epd::color::black);
@@ -106,7 +107,7 @@ void app_main(void)
     // We can also draw it inverted! For now, that involved measuring the text manually.
     std::string_view invertedText{"I'm inverted!"};
     epd::position invertedTextLocation{10, 210};
-    auto textRect = graphics.measure_text(&FreeSans18pt7b, invertedTextLocation, invertedText);
+    auto textRect = graphics.measure_text(font, invertedTextLocation, invertedText);
 
     // Make the bounding box a bit bigger!
     textRect.pad_horizontal(2);
@@ -117,7 +118,7 @@ void app_main(void)
 
     // Finally, we need to draw the text on top of it.
     graphics.draw_text(
-        &FreeSans18pt7b,
+        font,
         invertedTextLocation,
         invertedText,
         epd::color::white
@@ -129,7 +130,7 @@ void app_main(void)
 
     // Now, we will be doing partial refreshes!
     // First, determine the partial refresh area.
-    textRect = graphics.measure_text(&FreeSans18pt7b, helloWorldCursor, "6");
+    textRect = graphics.measure_text(font, helloWorldCursor, "6");
     textRect.pad_horizontal(6);
     textRect.pad_vertical(3);
 
@@ -138,7 +139,7 @@ void app_main(void)
     {
         graphics.clear_partial(textRect, epd::color::white);
 
-        graphics.draw_text(&FreeSans18pt7b, helloWorldCursor, digits[idx], epd::color::black);
+        graphics.draw_text(font, helloWorldCursor, digits[idx], epd::color::black);
 
         graphics.display_partial(textRect);
     }
