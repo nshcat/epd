@@ -26,6 +26,19 @@ namespace epd
             gpio_num_t cs_pin;
         };
         
+        // SPI bus speed that should be used to transmit data
+        // to the epaper panel
+        enum class spi_bus_speed
+        {
+            speed_1mhz = (80 * 1000 * 1000 / 80),
+            speed_2mhz = (80 * 1000 * 1000 / 40),
+            speed_4mhz = (80 * 1000 * 1000 / 20),
+            speed_8mhz = SPI_MASTER_FREQ_8M,
+            speed_16mhz = SPI_MASTER_FREQ_16M,
+            speed_20mhz = SPI_MASTER_FREQ_20M,
+            speed_26mhz = SPI_MASTER_FREQ_26M
+        };
+
         // IO implementation for ESP32 MCUs
         class transport
             : public ::epd::transport
@@ -35,7 +48,7 @@ namespace epd
             constexpr static std::int32_t SPI_CHUNK_SIZE = 4000;
 
         public:
-            transport(pinmap pins, spi_host_device_t spiHost);
+            transport(pinmap pins, spi_host_device_t spiHost, spi_bus_speed spiSpeed = spi_bus_speed::speed_20mhz);
 
             virtual ~transport() = default;
 
@@ -64,6 +77,7 @@ namespace epd
             pinmap m_pins;
             spi_device_handle_t m_spiDevice{ };
             spi_host_device_t m_spiHost;
+            spi_bus_speed m_spiSpeed;
         };
     }
 }

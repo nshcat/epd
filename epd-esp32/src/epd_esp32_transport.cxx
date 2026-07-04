@@ -9,14 +9,6 @@
 
 #include "epd_esp32_transport.hxx"
 
-#define SPI_MASTER_FREQ_4M      (80 * 1000 * 1000 / 20)   ///< 4MHz
-#define SPI_MASTER_FREQ_2M      (80 * 1000 * 1000 / 40)   ///< 2MHz
-#define SPI_MASTER_FREQ_1M      (80 * 1000 * 1000 / 80)   ///< 1MHz
-#define SPI_MASTER_FREQ_8M      (80 * 1000 * 1000 / 10)   ///< 8MHz
-#define SPI_MASTER_FREQ_500K    (80 * 1000 * 1000 / 160)  ///< 500KHz
-#define SPI_MASTER_FREQ_200K    (80 * 1000 * 1000 / 400)  ///< 200KHz
-#define SPI_MASTER_FREQ_20K    (80 * 1000 * 1000 / 4000)  ///< 20KHz
-
 namespace epd
 {
     namespace esp32 
@@ -35,8 +27,8 @@ namespace epd
         }
 
         // == transport
-        transport::transport(pinmap pins, spi_host_device_t spiHost)
-            : m_pins{pins}, m_spiHost{spiHost}
+        transport::transport(pinmap pins, spi_host_device_t spiHost, spi_bus_speed spiSpeed)
+            : m_pins{pins}, m_spiHost{spiHost}, m_spiSpeed{spiSpeed}
         {
             
         }
@@ -70,7 +62,7 @@ namespace epd
             // = Configure SPI device
             spi_device_interface_config_t deviceConfig{ };
             deviceConfig.mode = 0;
-            deviceConfig.clock_speed_hz = SPI_MASTER_FREQ_1M;
+            deviceConfig.clock_speed_hz = static_cast<int>(this->m_spiSpeed);
             deviceConfig.spics_io_num = -1;
             deviceConfig.queue_size = 3;
 
