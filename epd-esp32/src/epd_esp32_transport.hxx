@@ -30,6 +30,10 @@ namespace epd
         class transport
             : public ::epd::transport
         {
+        protected:
+            // Size of data chunks that should be transmitted via SPI at once
+            constexpr static std::int32_t SPI_CHUNK_SIZE = 4000;
+
         public:
             transport(pinmap pins, spi_host_device_t spiHost);
 

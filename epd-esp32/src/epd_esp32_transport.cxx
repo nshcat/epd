@@ -5,6 +5,7 @@
 #include "freertos/projdefs.h"
 #include "soc/gpio_num.h"
 #include <cstddef>
+#include <cmath>
 
 #include "epd_esp32_transport.hxx"
 
@@ -193,8 +194,38 @@ namespace epd
             // Now, if needed, send the data buffer associated with the command. This requires
             // the DC line to be deasserted.
             if(dataLength > 0)
-            {
-                for(std::size_t dataIdx = 0UL; dataIdx < dataLength; ++dataIdx)
+            {               
+                std::int32_t bytesLeft = static_cast<std::int32_t>(dataLength);
+                std::uint32_t bufferPosition = 0U;
+
+                // While we still have some data left to transfer..
+                while(bytesLeft > 0)
+                {
+                    // Check how much data we can transfer right now
+                    const std::int32_t thisChunkSize = std::min(transport::SPI_CHUNK_SIZE, bytesLeft);
+
+                    // Setup SPI transaction for this chunk
+                    const std::uint8_t* chunkPtr = data + bufferPosition;
+                    spi_transaction_t dataTransaction{ };
+                    dataTransaction.length = 8 * thisChunkSize;
+                    dataTransaction.tx_buffer = chunkPtr;
+
+                    // Transmit the data chunk via SPI
+                    result = spi_device_polling_transmit(this->m_spiDevice, &dataTransaction);
+                    if(result != ESP_OK)
+                    {
+                        ESP_LOGE(TAG, "Failed to transmit data over SPI");
+                        this->set_cs_pin(pin_state::high);
+                        return result;
+                    }
+
+                    // Adjust number of bytes left to transfer, and move current buffer
+                    // position forward for the next chunk (if there is one..)
+                    bytesLeft -= thisChunkSize;
+                    bufferPosition += thisChunkSize;
+                }
+
+                /*for(std::size_t dataIdx = 0UL; dataIdx < dataLength; ++dataIdx)
                 {
                     spi_transaction_t dataTransaction{ };
                     dataTransaction.length = 8;
@@ -207,7 +238,7 @@ namespace epd
                         this->set_cs_pin(pin_state::high);
                         return result;
                     }
-                }
+                }*/
 
                 /*spi_transaction_t dataTransaction{ };
                 dataTransaction.length = dataLength * 8;
