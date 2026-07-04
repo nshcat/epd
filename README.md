@@ -58,11 +58,11 @@ The first step is to instantiate the device-specific transport object matching t
 
 ```
 epd::esp32::pinmap epaperPins{
-        .busy_pin = EPAPER_PIN_NUM_BUSY,
-        .reset_pin = EPAPER_PIN_NUM_RST,
-        .dc_pin = EPAPER_PIN_NUM_DC,
-        .cs_pin = EPAPER_PIN_NUM_CS
-    };
+    .busy_pin = EPAPER_PIN_NUM_BUSY,
+    .reset_pin = EPAPER_PIN_NUM_RST,
+    .dc_pin = EPAPER_PIN_NUM_DC,
+    .cs_pin = EPAPER_PIN_NUM_CS
+};
 epd::esp32::transport transport{epaperPins, EPAPER_HOST};
 ```
 
