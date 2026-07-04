@@ -97,10 +97,10 @@ void app_main(void)
     );
 
     // And finally, some text.
-    graphics.draw_text(
+    const auto helloWorldCursor = graphics.draw_text(
         &FreeSans18pt7b, 
         epd::position{10, 175}, 
-        "Hello World! :3", 
+        "Hello World! :3 ", 
         epd::color::black);
 
     // We can also draw it inverted! For now, that involved measuring the text manually.
@@ -126,6 +126,22 @@ void app_main(void)
     // Then we display the updated canvas contents on the underlying panel.
     status = graphics.display();
     ESP_ERROR_CHECK(status);
+
+    // Now, we will be doing partial refreshes!
+    // First, determine the partial refresh area.
+    textRect = graphics.measure_text(&FreeSans18pt7b, helloWorldCursor, "6");
+    textRect.pad_horizontal(6);
+    textRect.pad_vertical(3);
+
+    const char* digits[]{ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+    for(int idx = 0; idx < 10; ++idx)
+    {
+        graphics.clear_partial(textRect, epd::color::white);
+
+        graphics.draw_text(&FreeSans18pt7b, helloWorldCursor, digits[idx], epd::color::black);
+
+        graphics.display_partial(textRect);
+    }
 
     ESP_LOGI(TAG, "Start idling");
     while(true)

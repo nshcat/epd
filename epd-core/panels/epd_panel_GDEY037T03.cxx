@@ -3,6 +3,7 @@
 
 #include "../epd_error.hxx"
 #include "../epd_panel.hxx"
+#include "controllers/epd_controller_UC8253.hxx"
 #include "epd_panel_GDEY037T03.hxx"
 
 namespace epd
@@ -57,7 +58,7 @@ namespace epd
             // ==
 
             // == Power on and initialize display controller
-            result = this->m_controller.power_up();
+            result = this->m_controller.power_up(controllers::UC8253_refresh_mode::FULL_REFRESH);
             EPD_CHECK_ERR(result);
             // ==
 

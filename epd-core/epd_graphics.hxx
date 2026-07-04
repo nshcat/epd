@@ -62,27 +62,31 @@ namespace epd
 
         void clear(color color);
         error_t display();
+        void clear_partial(const rectangle& area, color color);
         error_t display_partial(const rectangle& area);
 
     public: // Drawing primitives
-        void draw_pixel(position location, color color);
-        void draw_hline(position location, std::int32_t width, color color);
-        void draw_vline(position location, std::int32_t height, color color);
-        void draw_rect(rectangle rect, color color);
-        void fill_rect(rectangle rect, color color);
-        void draw_line(position from, position to, color color);
+        void draw_pixel(const position& location, color color);
+        void draw_hline(const position& location, std::int32_t width, color color);
+        void draw_vline(const position& location, std::int32_t height, color color);
+        void draw_rect(const rectangle& rect, color color);
+        void fill_rect(const rectangle& rect, color color);
+        void draw_line(const position& from, const position& to, color color);
 
     public: // Text operations
-        cursor draw_text(const GFXfont* font, position location, std::string_view string, color color);
-        cursor draw_text(const GFXfont* font, cursor location, std::string_view string, color color);
-        rectangle measure_text(const GFXfont* font, position location, std::string_view string);
-        rectangle measure_text(const GFXfont* font, cursor location, std::string_view string);
+        cursor draw_text(const GFXfont* font, const position& location, std::string_view string, color color);
+        cursor draw_text(const GFXfont* font, const cursor& location, std::string_view string, color color);
+        rectangle measure_text(const GFXfont* font, const position& location, std::string_view string);
+        rectangle measure_text(const GFXfont* font, const cursor& location, std::string_view string);
 
     protected:
-        cursor draw_char(const GFXfont* font, cursor pos, char character, color color);
-        void draw_glyph(const GFXfont* font, const GFXglyph* glyph, cursor position, color color);
+        cursor draw_char(const GFXfont* font, const cursor& pos, char character, color color);
+        void draw_glyph(const GFXfont* font, const GFXglyph* glyph, const cursor& position, color color);
         void measure_char(const GFXfont* font, internal::text_measurement_state* state, char character);
+
+    public:
         rectangle map_rectangle_to_panel(const rectangle& rect) const;
+        position map_point_to_panel(const position& point) const;
 
     protected:
         panel* m_panel;

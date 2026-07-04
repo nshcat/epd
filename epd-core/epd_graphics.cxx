@@ -108,6 +108,11 @@ namespace epd
         return EPD_OK;
     }
 
+    void graphics::clear_partial(const rectangle& area, color color)
+    {
+        this->fill_rect(area, color);
+    }
+
     error_t graphics::display_partial(const rectangle& area)
     {
         // Empty refresh area is not okay
@@ -136,7 +141,7 @@ namespace epd
         return EPD_OK;
     }
 
-    void graphics::draw_pixel(position position, color color)
+    void graphics::draw_pixel(const position& position, color color)
     {
         // Perform bounds check to avoid out-of-bounds buffer access
         if(position.x >= this->width() || position.y >= this->height())
@@ -145,51 +150,32 @@ namespace epd
         }
 
         // Rotate coordinates based on current rotation mode
-        std::uint32_t temp{ };
-        switch(this->m_rotation)
-        {
-            case epd::rotation::by_90deg:
-                temp = position.x;
-                position.x = this->m_panel->width() - 1 - position.y;
-                position.y = temp;
-                break;
-
-            case epd::rotation::by_180deg:
-                position.x = this->m_panel->width() - 1 - position.x;
-                position.y = this->m_panel->height() - 1 - position.y;
-                break;
-
-            case epd::rotation::by_270deg:
-                temp = position.x;
-                position.x = position.y;
-                position.y = this->m_panel->height() - 1 - temp;
-                break;
-
-            default:
-                break;
-        }
+        const auto adjustedPostion = this->map_point_to_panel(position);
 
         // Write to panel framebuffer
-        this->m_panel->set_pixel(position, color);
+        this->m_panel->set_pixel(adjustedPostion, color);
     }
 
-    void graphics::draw_hline(position position, std::int32_t width, color color)
+    void graphics::draw_hline(const position& position, std::int32_t width, color color)
     {
         epd::position to{ position.x + static_cast<std::int32_t>(width) - 1, position.y };
         this->draw_line(position, to, color);
     }
 
-    void graphics::draw_vline(position position, std::int32_t height, color color)
+    void graphics::draw_vline(const position& position, std::int32_t height, color color)
     {
         epd::position to{ position.x, position.y + static_cast<std::int32_t>(height) - 1 };
         this->draw_line(position, to, color);
     }
 
-    void graphics::draw_line(position from, position to, color color)
+    void graphics::draw_line(const position& from_, const position& to_, color color)
     {
         // Make sure to yield so that overeager watch dog timers dont fuck us up
         // (Especially common with ESP32..)
         this->m_transport->yield();
+
+        position from{from_};
+        position to{to_};
 
         // Bresenhams algorithm, stolen straight from Wikipedia :^)
         const auto isSteep = abs(to.y - from.y) > abs(to.x - from.x);
@@ -233,10 +219,10 @@ namespace epd
         }
     }
 
-    void graphics::draw_rect(rectangle rect, color color)
+    void graphics::draw_rect(const rectangle& rect, color color)
     {
-        const auto topLeft = rect.location;
-        const auto dimensions = rect.dimensions;
+        const auto& topLeft = rect.location;
+        const auto& dimensions = rect.dimensions;
 
         this->draw_hline(topLeft, dimensions.width, color);
         this->draw_hline(epd::position{topLeft.x, topLeft.y + (std::int32_t)dimensions.height - 1}, dimensions.width, color);
@@ -245,7 +231,7 @@ namespace epd
         this->draw_vline(epd::position{topLeft.x + (std::int32_t)dimensions.width - 1, topLeft.y}, dimensions.height, color);
     }
 
-    void graphics::fill_rect(rectangle rect, color color)
+    void graphics::fill_rect(const rectangle& rect, color color)
     {
         // We do not draw empty rectangles!
         if(rect.dimensions.width <= 0 || rect.dimensions.height <= 0)
@@ -262,28 +248,30 @@ namespace epd
         }
     }
 
-    cursor graphics::draw_text(const GFXfont* font, position position, std::string_view string, color color)
+    cursor graphics::draw_text(const GFXfont* font, const position& position, std::string_view string, color color)
     {
         return this->draw_text(font, cursor{position, this->dimensions()}, string, color);
     }
 
-    cursor graphics::draw_text(const GFXfont* font, cursor position, std::string_view string, color color)
+    cursor graphics::draw_text(const GFXfont* font, const cursor& startPosition, std::string_view string, color color)
     {
         if(!font) // Bad pointer? For real? :'(
         {
-            return position;
+            return startPosition;
         }
 
         // Dont draw if we are already out of bounds.
-        if(position.x >= this->width() || position.y >= this->height())
+        if(startPosition.x >= this->width() || startPosition.y >= this->height())
         {
             // We are not treating this as an error, but rather as a 'no operation'.
-            return position;
+            return startPosition;
         }
 
         // Make sure to yield so that overeager watch dog timers dont fuck us up
         // (Especially common with ESP32..)
         this->m_transport->yield();
+
+        cursor position{startPosition};
 
         // Draw the string. The `draw_char` method takes care to deal with
         // special characters such as line endings correctly.
@@ -295,12 +283,12 @@ namespace epd
         return position;
     }
 
-    rectangle graphics::measure_text(const GFXfont* font, position location, std::string_view string)
+    rectangle graphics::measure_text(const GFXfont* font, const position& location, std::string_view string)
     {
         return this->measure_text(font, cursor{location, this->dimensions()}, string); 
     }
 
-    rectangle graphics::measure_text(const GFXfont* font, cursor location, std::string_view string)
+    rectangle graphics::measure_text(const GFXfont* font, const cursor& location, std::string_view string)
     {
         // Check font pointer..
         if(!font)
@@ -388,13 +376,15 @@ namespace epd
         }
     }
 
-    cursor graphics::draw_char(const GFXfont* font, cursor position, char character, color color)
+    cursor graphics::draw_char(const GFXfont* font, const cursor& startPosition, char character, color color)
     {
         // Someone might have been naughty and passed us a null pointer..
         if(!font)
         {
-            return position;
+            return startPosition;
         }
+
+        cursor position{startPosition};
 
         // Handle new line.
         if(character == '\n')
@@ -449,7 +439,7 @@ namespace epd
         return position;
     }
 
-    void graphics::draw_glyph(const GFXfont* font, const GFXglyph* glyph, cursor position, color color)
+    void graphics::draw_glyph(const GFXfont* font, const GFXglyph* glyph, const cursor& position, color color)
     {
         if(!font || !glyph)
         {
@@ -482,5 +472,87 @@ namespace epd
         }
 
         return;
+    }
+
+    rectangle graphics::map_rectangle_to_panel(const rectangle& rect) const
+    {
+        // For 0 degree rotation, we dont need to do anything.
+        if(this->m_rotation == rotation::by_0deg)
+        {
+            return rect;
+        }
+
+        // First, rotate the top left and bottom right points
+        auto topLeft = rect.location;
+        auto bottomRight = rect.bottom_right();
+
+        topLeft = this->map_point_to_panel(topLeft);
+        bottomRight = this->map_point_to_panel(bottomRight);
+
+        // We will be needing the width for adjustments later
+        const auto width = (topLeft.x - bottomRight.x);
+        const auto height = (topLeft.y - bottomRight.y);
+        
+
+        // Now we have to adjust the points depending on the rotation, since
+        // the relative location of the points might change (and thus
+        // the top left point might not be the top left one anymore, potentially)
+        switch(this->m_rotation)
+        {
+            case rotation::by_90deg:
+                // After rotation, topLeft is actually topRight,
+                // and bottomRight is actually bottomLeft
+                topLeft.x = topLeft.x - width;
+                bottomRight.x = bottomRight.x + width;
+                break;
+
+            case rotation::by_180deg:
+                // After rotation, topLeft is actually bottomRight and vise
+                // versa
+                std::swap(topLeft, bottomRight);
+                break;
+
+            case rotation::by_270deg:
+                // After rotation, topLeft is actually bottomRight, and
+                // bottomRight is actually topRight
+                topLeft.y = topLeft.y - height;
+                bottomRight.y = bottomRight.y + height;
+                break;
+
+            default:
+                break;
+        }
+
+        return rectangle::from_points(topLeft, bottomRight);
+    }
+
+    position graphics::map_point_to_panel(const position& point) const
+    {
+
+        std::int32_t x = point.x;
+        std::int32_t y = point.y;
+
+        switch(this->m_rotation)
+        {
+            case epd::rotation::by_90deg:
+                x = this->m_panel->width() - 1 - point.y;
+                y = point.x;
+                break;
+
+            case epd::rotation::by_180deg:
+                x = this->m_panel->width() - 1 - point.x;
+                y = this->m_panel->height() - 1 - point.y;
+                break;
+
+            case epd::rotation::by_270deg:
+                x = point.y;
+                y = this->m_panel->height() - 1 - point.x;
+                break;
+
+            default:
+                break;
+        }
+
+        return { x, y };
     }
 }
