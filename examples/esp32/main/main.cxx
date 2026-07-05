@@ -9,6 +9,7 @@
 
 #include <epd_esp32.hxx>
 #include <panels/epd_panel_GDEY037T03.hxx>
+#include <fonts/epd_font_consolab32pt8b.hxx>
 #include <fonts/epd_font_FreeSans18pt7b.hxx>
 
 
@@ -96,6 +97,14 @@ void app_main(void)
     );
 
     // And finally, some text.
+    const auto* bigFont = &epd::fonts::consolab32pt8b;
+
+    graphics.draw_text(
+        bigFont, 
+        epd::position{180, 70}, 
+        "24.6\x7F" "C", 
+        epd::color::black);
+
     const auto* font = &epd::fonts::FreeSans18pt7b;
 
     const auto helloWorldCursor = graphics.draw_text(
